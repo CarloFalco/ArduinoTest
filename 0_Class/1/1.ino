@@ -20,7 +20,7 @@ void loop(){
   
   delay(500);
   led.toggle();
-  Serial.print("valore del counter: " + String(count.numVal()) + "\n");
+  // Serial.print("valore del counter: " + String(count.numVal()) + "\n");
 
   delay(500);
   led.red(); 
