@@ -1,5 +1,9 @@
+*secret.h
+
 # Prerequisites
 *.d
+
+
 
 # Compiled Object files
 *.slo
