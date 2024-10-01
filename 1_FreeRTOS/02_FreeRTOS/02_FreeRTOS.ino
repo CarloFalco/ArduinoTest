@@ -21,8 +21,7 @@ void Scheduler_PwrOn(void);
 void setup() {
   // Init Serial Monitor
   Serial.begin(115200);
-
-
+  
   // Crea i task
   Scheduler_PwrOn();
 }
@@ -64,9 +63,6 @@ void task_slow(void* pvParameters) {
   while (true) {
     // Esegui il codice del task 3
     k++; Serial.print("\t\t\t\t\t\t\t\tTask 3: \t k = ");Serial.println(k);
-
-
-
 
     vTaskDelayUntil(&lastWakeTime, period);
   }
