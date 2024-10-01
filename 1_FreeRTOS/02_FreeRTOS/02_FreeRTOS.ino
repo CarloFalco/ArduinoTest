@@ -1,6 +1,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
+#define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
 #define mS_TO_S_FACTOR 1000ULL  /* Conversion factor for milli seconds to seconds */
 
 #define TASK_FAST    100                // 0.1ms
