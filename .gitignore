@@ -2,6 +2,7 @@
 
 # Prerequisites
 *.d
+*secret.h
 
 
 
