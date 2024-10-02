@@ -1,14 +1,14 @@
 # Datatype:
-*esp_sleep_wakeup_cause_t wakeup_reason*; il tipo di dato che contiene il motivo del risveglio  
-*wakeup_reason = esp_sleep_get_wakeup_cause()*; la funzione che serve per capire perche è andato in sleep
+*esp_sleep_wakeup_cause_t wakeUpRsn*;  
+*wakeUpRsn = esp_sleep_get_wakeup_cause()*; Sleep wakeup cause.
 
 
 
 # modalità di deep sleep:
 
-1. ESP_SLEEP_WAKEUP_EXT0: risveglio tramite un singolo pin GPIO.
-1. ESP_SLEEP_WAKEUP_EXT1: risveglio tramite un set di pin GPIO.
-1. ESP_SLEEP_WAKEUP_TIMER: risveglio tramite un timer hardware dopo un determinato intervallo di tempo.
+1. ESP_SLEEP_WAKEUP_EXT0: Wakeup caused by external signal using RTC_IO.
+1. ESP_SLEEP_WAKEUP_EXT1: Wakeup caused by external signal using RTC_CNTL.
+1. ESP_SLEEP_WAKEUP_TIMER: Wakeup caused by timer.
 
 
 
@@ -30,54 +30,34 @@ Only RTC IO can be used as a source for external wake source. They are pins: 0,2
 *esp_sleep_enable_ext1_wakeup(bitmask, mode)*;  
 **bitmask**: A bitmask of the GPIO numbers that will cause the wake up; eg:..
 
-WAKEUP_PIN_1 = 33 e WAKEUP_PIN_2 = 34:
-1ULL << 33: 0x0000000200000000 (bit 34° is 1).
-1ULL << 34: 0x0000000400000000 (bit 35° is 1).
-0x0000000200000000 | 0x0000000400000000 = 0x0000000600000000
-Quindi, 0x0000000600000000 è la bitmask risultante, con il 34° e il 35° bit impostati a 1.
+WAKEUP_PIN_1 = 33 e WAKEUP_PIN_2 = 34:  
+1ULL << 33: 0x0000000200000000 (bit 34° is 1).  
+1ULL << 34: 0x0000000400000000 (bit 35° is 1).  
+0x0000000200000000 | 0x0000000400000000 = 0x0000000600000000  
+so: 0x0000000600000000 it's mean both bit 33 and 34 = 1
 
 
 **mode**: Mode: the logic to wake up the ESP32. It can be:
 - ESP_EXT1_WAKEUP_ALL_LOW/HIGH: wake up when all GPIOs go low/high;
 - ESP_EXT1_WAKEUP_ANY_LOW/HIGH: wake up if any of the GPIOs go low/high.
 
-*pinMode(GPIO_NUM_33, INPUT_PULLDOWN);*  
-*esp_sleep_enable_ext0_wakeup(GPIO_NUM_33, 1);* 
+*WAKEUP_PIN_1 = GPIO_NUM_33 e WAKEUP_PIN_2 = GPIO_NUM_34*  
+
+*pinMode(WAKEUP_PIN_1, INPUT_PULLDOWN);*  
+*pinMode(WAKEUP_PIN_2, INPUT_PULLDOWN);*  
+
+*esp_sleep_enable_ext0_wakeup((1ULL << WAKEUP_PIN_1) | (1ULL << WAKEUP_PIN_2), ESP_EXT1_WAKEUP_ANY_HIGH);* 
+
 *esp_deep_sleep_start();
 
 
+### ESP_SLEEP_WAKEUP_TIMER
+*esp_sleep_enable_timer_wakeup(time_in_us);*
 
-/*
+**time_in_us** time before wakeup, in microseconds
 
-
-
-ESEMPIO CREAZIONE BITMASK
-Supponiamo che WAKEUP_PIN_1 = 33 e WAKEUP_PIN_2 = 34:
-1ULL << 33: Risultato = 0x0000000200000000 (il 34° bit è 1).
-1ULL << 34: Risultato = 0x0000000400000000 (il 35° bit è 1).
-OR dei due valori:
-0x0000000200000000 | 0x0000000400000000 = 0x0000000600000000
-Quindi, 0x0000000600000000 è la bitmask risultante, con il 34° e il 35° bit impostati a 1.
+*esp_deep_sleep_start();*  
 
 
-// Definiamo i pin per il wakeup esterno
-#define WAKEUP_PIN_1 GPIO_NUM_33
-#define WAKEUP_PIN_2 GPIO_NUM_34
-
-
-  Only RTC IO can be used as a source for external wake source. They are pins: 0,2,4,12-15,25-27,32-39.
-
-  // Configuriamo il wakeup tramite i pin 33 e 34
-  // La modalità OR_WAKE indicherà che l'ESP32 si risveglierà se uno dei due pin diventa alto
-  esp_sleep_enable_ext1_wakeup((1ULL << WAKEUP_PIN_1) | (1ULL << WAKEUP_PIN_2), ESP_EXT1_WAKEUP_ANY_HIGH);
-
-*/
-
-// case ESP_SLEEP_WAKEUP_TIMER : 
-/*
-esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
-
-*/      
-
-
+For more information see the official guide available [here](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/sleep_modes.html):
 
