@@ -56,7 +56,9 @@ void setup() {
 
 
   Serial.println("Entrando in modalità sleep...");
-  delay(500);  // Diamo tempo al messaggio di essere inviato prima di dormire
+  delay(100);  // Diamo tempo al messaggio di essere inviato prima di dormire
+  Serial.flush();
+  delay(200);  // Diamo tempo al messaggio di essere inviato prima di dormire
   // Entriamo in modalità deep sleep
   esp_deep_sleep_start();
 }
