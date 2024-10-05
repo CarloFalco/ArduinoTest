@@ -25,7 +25,7 @@
 
 
 RTC_DATA_ATTR int wakeUpCount = 0;
-RTC_DATA_ATTR uint8_t wakeUpPreviousTime = 0;
+RTC_DATA_ATTR uint8_t needsToStayActive = 0;
 
 TaskHandle_t task1Handle;
 
