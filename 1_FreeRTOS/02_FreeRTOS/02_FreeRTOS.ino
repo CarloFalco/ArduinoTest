@@ -8,6 +8,8 @@
 #define TASK_MEDIUM  1*mS_TO_S_FACTOR   // 1 s
 #define TASK_SLOW    10*mS_TO_S_FACTOR  // 10 s
 
+
+
 // task 
 TaskHandle_t task1Handle;
 TaskHandle_t task2Handle;
@@ -38,7 +40,6 @@ void task_fast(void* pvParameters) {
 
   while (true) {
     // Esegui il codice del task 1
-    i++; Serial.print("Task 1: \t i = ");Serial.println(i);
 
     vTaskDelayUntil(&lastWakeTime, period);
   }
@@ -51,7 +52,6 @@ void task_med(void* pvParameters) {
 
   while (true) {
     // Esegui il codice del task 2
-    j++; Serial.print("\t\t\t\tTask 2: \t j = ");Serial.println(j);
 
     vTaskDelayUntil(&lastWakeTime, period);
   }
@@ -63,11 +63,12 @@ void task_slow(void* pvParameters) {
   const TickType_t period = pdMS_TO_TICKS(TASK_SLOW);
   while (true) {
     // Esegui il codice del task 3
-    k++; Serial.print("\t\t\t\t\t\t\t\tTask 3: \t k = ");Serial.println(k);
 
     vTaskDelayUntil(&lastWakeTime, period);
   }
 }
+
+
 
 
 // Creazione dei task //
