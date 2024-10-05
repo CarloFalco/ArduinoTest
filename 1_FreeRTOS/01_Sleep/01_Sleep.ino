@@ -13,7 +13,7 @@
 #define DEBOUNCE_DELAY 50 // Delay per il debounce in millisecondi
 
 
-#define TIME_TO_SLEEP  5  // s
+#define TIME_TO_SLEEP  20  // s
 
 #define WAKEUP_PIN_1 GPIO_NUM_10  // Pin RTC 33
 #define WAKEUP_PIN_2 GPIO_NUM_11  // Pin RTC 34
@@ -25,7 +25,7 @@
 
 
 RTC_DATA_ATTR int wakeUpCount = 0;
-RTC_DATA_ATTR uint8_t needsToStayActive = 0;
+RTC_DATA_ATTR uint8_t wakeUpPreviousTime = 0;
 
 TaskHandle_t task1Handle;
 
@@ -39,10 +39,6 @@ void setup() {
 
   pinMode(LED_BUILTIN, OUTPUT);
 
-
-  wakeUpCount ++;
-
-
   Serial.begin(115200);
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB
@@ -50,6 +46,7 @@ void setup() {
   Serial.print("Wakeup Count: ");  Serial.println(wakeUpCount);
 
   esp_sleep_wakeup_cause_t wakeUpRsn = esp_sleep_get_wakeup_cause();  
+
   Serial.println("wakeup reason num: " + String(wakeUpRsn));
 
   // se mi sono svegliato per un interrupt di un pin (vale sia il primo metodo che il secondo)
@@ -61,20 +58,27 @@ void setup() {
   // se mi sono svegliato causa mancanza di batteria riinizializzo l'rtc
   if (wakeUpRsn == ESP_SLEEP_WAKEUP_UNDEFINED) {WakeUp_PowerLoss();}
 
-  Serial.println("Debug_10");
-  Serial.print("needsToStayActive: ");  Serial.println(needsToStayActive);
-
 }
 
 
 void loop() {
   // Questo codice non verrà eseguito, poiché l'ESP32 si risveglia dal deep sleep e ricomincia da setup().
 
-  Serial.println("Debug_20");
-  Serial.print("needsToStayActive: ");  Serial.println(needsToStayActive);
-
   if (needsToStayActive == 0){
+    esp_sleep_wakeup_cause_t wakeUpRsn = esp_sleep_get_wakeup_cause();  
     
+    if (wakeUpRsn == ESP_SLEEP_WAKEUP_EXT0 || wakeUpRsn == ESP_SLEEP_WAKEUP_EXT1) {
+      delay(1000);
+    }
+
+    if (wakeUpRsn == ESP_SLEEP_WAKEUP_TIMER) {
+      digitalWrite(LED_BUILTIN, 0);
+      vTaskDelete(task1Handle);
+      task1Handle = NULL;  // Resetta l'handle dopo l'eliminazione
+      wakeUpCount = 0;
+
+    }
+
     // digitalWrite(LED_BUILTIN, 0);
     // Configuriamo il wakeup via pin
     esp_sleep_enable_ext1_wakeup((1ULL << WAKEUP_PIN_1) | (1ULL << WAKEUP_PIN_2), ESP_EXT1_WAKEUP_ANY_HIGH);
@@ -82,16 +86,12 @@ void loop() {
     // Configuriamo il wakeup tramite timer
     esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
 
-    
 
     Serial.println("Entrando in modalità sleep...");
-    delay(100);  // Diamo tempo al messaggio di essere inviato prima di dormire
     Serial.flush();
-    delay(200);  // Diamo tempo al messaggio di essere inviato prima di dormire
     // Entriamo in modalità deep sleep
     esp_deep_sleep_start();
   }
-  delay(500);  // Diamo tempo al messaggio di essere inviato prima di dormire
 
 
 } 
@@ -99,6 +99,7 @@ void loop() {
 
 void WakeUp_Interrupt(void){
   Serial.println("Wake Up caused by interrupt");
+  wakeUpCount ++;
 }
 
 void WakeUp_PowerLoss(void){
@@ -108,19 +109,8 @@ void WakeUp_PowerLoss(void){
 void WakeUp_Timer(void){
   Serial.println("Wake Up caused by timer");
 
-  xTaskCreatePinnedToCore(
-    led_blink_task,         // Task function.
-    "LED blink task",       // name of task.
-    2048,          // Stack size of task
-    NULL,          // parameter of the task
-    1,             // priority of the task
-    &task1Handle,  // Task handle to keep track of created task
-    0);            // pin task to core 0        
-
+  xTaskCreate(led_blink_task, "LED blink task", 2048, NULL, 1, &task1Handle);   
   needsToStayActive = 1;
-
-  Serial.print("needsToStayActive: ");  Serial.println(needsToStayActive);
-
 
 }
 
@@ -131,17 +121,11 @@ void led_blink_task(void* pvParameters) {
   int count_iter = 0;
   while (true) {
     // Esegui il codice del task 1
-    Serial.print("\t\t TASK \T");
-    Serial.println(count_iter);
+    
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
     count_iter ++;
-    if (count_iter > 10){
-      digitalWrite(LED_BUILTIN, 0);
+    if (count_iter > 9){      
       needsToStayActive = 0;
-      Serial.print("\t\t TASK END\T");
-      vTaskDelete(task1Handle);
-      task1Handle = NULL;  // Resetta l'handle dopo l'eliminazione
-
     }
 
     vTaskDelayUntil(&lastWakeTime, period);
