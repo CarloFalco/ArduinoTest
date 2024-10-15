@@ -1,7 +1,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-//#define ENABLE_CALIBRATION
+#define ENABLE_CALIBRATION
 #include "calibration.h"
 
 #define LED_BUILTIN 97
@@ -22,8 +22,8 @@ void setup() {
 }
 
 void loop() {
-    Serial.print("Valore di variabile1: ");
-    Serial.println(variabili[0].valore);
+    //Serial.print("Valore di variabile1: ");
+    //Serial.println(variabili[0].valore);
     delay(1000);
     
 }

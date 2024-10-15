@@ -20,19 +20,32 @@ void gestisciSeriale() {
             String nome = input.substring(4); // Estrae il nome della variabile
 
             bool trovato = false;
-            for (int i = 0; i < 4; i++) {
-                if (variabili[i].nome == nome) {
-                    Serial.print("Valore attuale di ");
-                    Serial.print(nome);
-                    Serial.print(": ");
-                    Serial.println(variabili[i].valore);
-                    trovato = true;
-                    break;
-                }
+            if (nome == "all"){
+              for (int i = 0; i<4; i++){
+                Serial.print("Valore attuale di ");
+                Serial.print(variabili[i].nome);
+                Serial.print(": ");
+                Serial.println(variabili[i].valore); 
+              }
+              trovato = true; 
             }
+            if (!trovato) {
+              for (int i = 0; i < 4; i++) {
+                if (variabili[i].nome == nome) {
+                      Serial.print("Valore attuale di ");
+                      Serial.print(nome);
+                      Serial.print(": ");
+                      Serial.println(variabili[i].valore);
+                      trovato = true;
+                      break;
+                }
+              }
+            }
+
             if (!trovato) {
                 Serial.println("Nome della variabile non valido.");
             }
+
         } else if (input.startsWith("put ")) {
             int spazio = input.indexOf(' ', 4); // Trova la posizione dello spazio dopo 'put '
             String nome = input.substring(4, spazio); // Estrae il nome della variabile

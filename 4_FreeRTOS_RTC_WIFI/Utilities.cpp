@@ -1,47 +1,18 @@
-//TODO:  controllare e impostare l'invalidita del tempo in caso il tempo sia piu vecchio del 2024
-
-#include <WiFi.h>
 #include <ESP32Time.h>
-#include "secret.h"
+#include "Utilities.h"
 
-ESP32Time rtc(3600);  // offset in seconds GMT+1ù
-
-
-
-#define uS_TO_S_FACTOR 1000000ULL  /* Conversion factor for micro seconds to seconds */
-#define TIME_TO_SLEEP  5        /* Time ESP32 will go to sleep (in seconds) */
-
-void setup_rtc_time(ESP32Time *);
-void check_DST(ESP32Time *);
-
-void setup() {
-  Serial.begin(115200);
-
-  while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB
-  }
-
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-  }
-  Serial.print("ip: ");Serial.println(WiFi.localIP());
-
-  // setup time
-  setup_rtc_time(&rtc);
-
-
-}
-
-void loop() {
-  String dataTime = rtc.getTime("%A, %B %d %Y %H:%M:%S");
-  log_i("%s", dataTime.c_str());
-  delay(1000);
-
-  check_DST(&rtc);
-
-}
-
+/*
+Eeprom_Data_Type eepromData = {
+      String(""),
+      { String("CHAT_ID_1"), String("CHAT_ID_2"), String(""), String("") },
+      { 1, 0, 0, 0 },
+      false,                // Boolean can bee true or false, or LOW or HIGH
+      false,
+      LOW, 
+      10,      
+      14   
+};
+*/
 
 void setup_rtc_time(ESP32Time *rtc){
     // Configurazione del fuso orario
@@ -60,7 +31,6 @@ void setup_rtc_time(ESP32Time *rtc){
     check_DST(rtc);
 
 }
-
 
 
 void check_DST(ESP32Time *rtc) {
@@ -112,16 +82,41 @@ void check_DST(ESP32Time *rtc) {
 
 
 
+// FUNZIONI RELATIVE ALLA EEPROM
+void do_eprom_read() {
 
+  EEPROM.begin(200);
+  EEPROM.get(0, eepromData);
 
+  Serial.print("EEPROM STS_Before: ");
+  Serial.println(eepromData.eprom_good);
 
+  if (eepromData.eprom_good == 14) {
+    Serial.println("Good settings in the EPROM ");
+    Serial.print("EEPROM STS: ");
+    Serial.println(eepromData.eprom_good);
+    // eepromData.Eeprom_bArray[i] // go access to information inside the struct
 
+  } else {
+    Serial.println("EPROM canot be read ");
+    eepromData = {
+      String(""),
+      { String("CHAT_ID_1"), String("CHAT_ID_2"), String(""), String("") },
+      { 1, 0, 0, 0 },
+      false,                // Boolean can bee true or false, or LOW or HIGH
+      false,
+      LOW, 
+      10,      
+      14   
+    };
+    do_eprom_write();
+  }
+}
 
-
-
-
-
-
-
-
-
+void do_eprom_write() {
+  Serial.println("Writing to EPROM ...");
+  EEPROM.begin(200);
+  EEPROM.put(0, eepromData);
+  EEPROM.commit();
+  EEPROM.end();
+}

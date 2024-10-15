@@ -1,6 +1,10 @@
+*secret.h
+*letsEncryptCaCrt.h
 # Prerequisites
 *.d
 *secret.h
+
+
 
 # Compiled Object files
 *.slo
@@ -31,3 +35,4 @@
 *.exe
 *.out
 *.app
+
