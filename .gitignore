@@ -1,5 +1,5 @@
 *secret.h
-/5_Mqtt/letsEncryptCaCrt.h
+*letsEncryptCaCrt.h
 # Prerequisites
 *.d
 *secret.h
