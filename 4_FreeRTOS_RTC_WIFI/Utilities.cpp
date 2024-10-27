@@ -61,6 +61,7 @@ void check_DST(ESP32Time *rtc) {
       // Serial.println("epoch time: " + String(rtc->getEpoch())); // (String) returns time
       rtc->setTime(rtc->getEpoch()+(60*60)); 
       // variabile che indica se sono con l'orario solare o legale
+      Serial.println("Ora Legale");
       SolarTime = true; 
       firstTimeHere = false;
     }
@@ -71,7 +72,13 @@ void check_DST(ESP32Time *rtc) {
     
     if ( (lastSunday && dayOfWeek == 0 && hour >= 3)  && (SolarTime == true || firstTimeHere == true)) {
       // imposto l'ora legale facendo il tempo attuale piu 1h in millisecond
-      rtc->setTime(rtc->getEpoch()-(60*60)); 
+      if (firstTimeHere){
+        rtc->setTime(rtc->getEpoch()-(60*60*2));
+        Serial.println("FirstTime");
+      }else {
+        rtc->setTime(rtc->getEpoch()-(60*60));  
+      }
+      Serial.println("Ora Solare");
       // variabile che indica se sono con l'orario solare o legale
       SolarTime = false; 
       firstTimeHere = false;

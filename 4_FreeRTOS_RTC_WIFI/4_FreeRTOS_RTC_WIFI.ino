@@ -139,6 +139,9 @@ void WakeUp_Interrupt(void){
 void WakeUp_Timer(void){
   Serial.println("Wake Up caused by timer");
 
+  String dataTime = rtc.getTime("%A, %B %d %Y %H:%M:%S");
+  log_i("%s", dataTime.c_str());
+  
   xTaskCreate(led_blink_task, "LED blink task", 2048, NULL, 1, &task1Handle);   
   needsToStayActive = 1;
 }
