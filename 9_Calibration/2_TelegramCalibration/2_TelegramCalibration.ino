@@ -27,6 +27,9 @@
 #define FEED_INIT_COUNT 2
 
 
+TaskHandle_t task1Handle;
+
+
 
 typedef struct {
   String CurrentPhotoReqId;  // ID del utente che ha richiesto la foto
