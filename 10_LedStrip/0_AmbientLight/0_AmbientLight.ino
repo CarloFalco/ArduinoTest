@@ -3,10 +3,11 @@
  * Uses Adalight protocol and is compatible with Boblight, Prismatik etc...
  * "Magic Word" for synchronisation is 'Ada' followed by LED High, Low and Checksum
  * @author: Wifsimster <wifsimster@gmail.com> 
- * @library: FastLED v3.001
+ * @library: Adafruit_NeoPixel
  * @date: 11/22/2015
  */
-#include "FastLED.h"
+#include <Adafruit_NeoPixel.h>
+
 #define NUM_LEDS 52
 #define DATA_PIN 6
 
@@ -17,20 +18,24 @@
 uint8_t prefix[] = {'A', 'd', 'a'}, hi, lo, chk, i;
 
 // Initialise LED-array
-CRGB leds[NUM_LEDS];
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, DATA_PIN, NEO_GRB + NEO_KHZ800);
 
 void setup() {
-  // Use NEOPIXEL to keep true colors
-  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
+  strip.begin();
+  strip.show(); // Initialize all pixels to 'off'
   
   // Initial RGB flash
-  LEDS.showColor(CRGB(255, 0, 0));
+  strip.fill(strip.Color(255, 0, 0), 0, NUM_LEDS);
+  strip.show();
   delay(500);
-  LEDS.showColor(CRGB(0, 255, 0));
+  strip.fill(strip.Color(0, 255, 0), 0, NUM_LEDS);
+  strip.show();
   delay(500);
-  LEDS.showColor(CRGB(0, 0, 255));
+  strip.fill(strip.Color(0, 0, 255), 0, NUM_LEDS);
+  strip.show();
   delay(500);
-  LEDS.showColor(CRGB(0, 0, 0));
+  strip.fill(strip.Color(0, 0, 0), 0, NUM_LEDS);
+  strip.show();
   
   Serial.begin(serialRate);
   // Send "Magic Word" string to host
@@ -62,7 +67,9 @@ void loop() {
     goto waitLoop;
   }
   
-  memset(leds, 0, NUM_LEDS * sizeof(struct CRGB));
+  // Clear the strip
+  strip.clear();
+  
   // Read the transmission data and set LED values
   for (uint8_t i = 0; i < NUM_LEDS; i++) {
     byte r, g, b;    
@@ -72,11 +79,11 @@ void loop() {
     g = Serial.read();
     while(!Serial.available());
     b = Serial.read();
-    leds[i].r = r;
-    leds[i].g = g;
-    leds[i].b = b;
+    strip.setPixelColor(i, strip.Color(r, g, b));
   }
   
   // Shows new values
-  FastLED.show();
+  strip.show();
 }
+
+
