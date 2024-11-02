@@ -3,20 +3,26 @@
 #define NUM_LEDS 52
 #define DATA_PIN 6
 
-// Baudrate, higher rate allows faster refresh rate and more LEDs (defined in /etc/boblight.conf)
 #define serialRate 115200
 
-// Adalight sends a "Magic Word" (defined in /etc/boblight.conf) before sending the pixel data
-uint8_t prefix[] = {'A', 'd', 'a'}, hi, lo, chk, i;
-
-// Initialise LED-array
+uint8_t prefix[] = {'A', 'd', 'a'};
+uint8_t hi, lo, chk, i;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, DATA_PIN, NEO_GRB + NEO_KHZ800);
+
+enum State {
+  WAITING_FOR_MAGIC_WORD,
+  READING_HEADER,
+  READING_DATA
+};
+
+State currentState = WAITING_FOR_MAGIC_WORD;
+uint8_t dataBuffer[NUM_LEDS * 3];
+uint8_t dataIndex = 0;
 
 void setup() {
   strip.begin();
-  strip.show(); // Initialize all pixels to 'off'
+  strip.show();
   
-  // Initial RGB flash
   strip.fill(strip.Color(255, 0, 0), 0, NUM_LEDS);
   strip.show();
   delay(500);
@@ -30,50 +36,52 @@ void setup() {
   strip.show();
   
   Serial.begin(serialRate);
-  // Send "Magic Word" string to host
   Serial.print("Ada\n");
 }
 
-void loop() { 
-  // Wait for first byte of Magic Word
-  i = 0;
-  while (i < sizeof(prefix)) {
-    while (!Serial.available());
-    if (prefix[i] == Serial.read()) {
-      i++;
-    } else {
-      i = 0;
+void loop() {
+  if (Serial.available()) {
+    switch (currentState) {
+      case WAITING_FOR_MAGIC_WORD:
+        if (Serial.read() == prefix[i]) {
+          i++;
+          if (i == sizeof(prefix)) {
+            currentState = READING_HEADER;
+            i = 0;
+          }
+        } else {
+          i = 0;
+        }
+        break;
+
+      case READING_HEADER:
+        if (Serial.available() >= 3) {
+          hi = Serial.read();
+          lo = Serial.read();
+          chk = Serial.read();
+          if (chk == (hi ^ lo ^ 0x55)) {
+            currentState = READING_DATA;
+            dataIndex = 0;
+          } else {
+            currentState = WAITING_FOR_MAGIC_WORD;
+          }
+        }
+        break;
+
+      case READING_DATA:
+        if (Serial.available() >= 3) {
+          dataBuffer[dataIndex++] = Serial.read();
+          dataBuffer[dataIndex++] = Serial.read();
+          dataBuffer[dataIndex++] = Serial.read();
+          if (dataIndex >= sizeof(dataBuffer)) {
+            for (uint8_t j = 0; j < NUM_LEDS; j++) {
+              strip.setPixelColor(j, strip.Color(dataBuffer[j * 3], dataBuffer[j * 3 + 1], dataBuffer[j * 3 + 2]));
+            }
+            strip.show();
+            currentState = WAITING_FOR_MAGIC_WORD;
+          }
+        }
+        break;
     }
   }
-  
-  // Hi, Lo, Checksum  
-  while (!Serial.available());
-  hi = Serial.read();
-  while (!Serial.available());
-  lo = Serial.read();
-  while (!Serial.available());
-  chk = Serial.read();
-  
-  // If checksum does not match go back to wait
-  if (chk != (hi ^ lo ^ 0x55)) {
-    return;
-  }
-  
-  // Clear the strip
-  strip.clear();
-  
-  // Read the transmission data and set LED values
-  for (uint8_t i = 0; i < NUM_LEDS; i++) {
-    byte r, g, b;    
-    while (!Serial.available());
-    r = Serial.read();
-    while (!Serial.available());
-    g = Serial.read();
-    while (!Serial.available());
-    b = Serial.read();
-    strip.setPixelColor(i, strip.Color(r, g, b));
-  }
-  
-  // Shows new values
-  strip.show();
 }
