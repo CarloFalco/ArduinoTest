@@ -6,7 +6,7 @@
 
 // URL del server
 //const char* serverUrl = "https://jsonplaceholder.typicode.com/posts/1"; // URL per il test
-const char* serverUrl = "https://raw.githubusercontent.com/kakopappa/esp32-github-ota/main/version.txt";
+const char* serverUrl = "https://raw.githubusercontent.com/CarloFalco/ArduinoTest/refs/heads/Mqtt/11_OTA/HttpsTest/version.txt";
 
 void setup() {
   Serial.begin(115200);
@@ -35,7 +35,7 @@ void loop() {
 void testHttpGet() {
   if (WiFi.status() == WL_CONNECTED) {
     WiFiClientSecure espClient;
-    espClient.setCACert(leCaCrt_My);
+    espClient.setCACert(leCaCrt);
     // client.setInsecure(); // Disabilita la verifica del certificato per test (non sicuro per produzione!)
 
     HTTPClient http;
