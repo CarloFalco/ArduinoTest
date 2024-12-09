@@ -11,10 +11,10 @@
 #include "secret.h"
 
 
-const char* OTA_FILE_LOCATION = "https://raw.githubusercontent.com/CarloFalco/ArduinoTest/refs/heads/Mqtt/11_OTA/HttpsTest/firmware.bin";
-const char* VERSION_URL = "https://raw.githubusercontent.com/CarloFalco/ArduinoTest/refs/heads/Mqtt/11_OTA/HttpsTest/version.txt";
+const char* OTA_FILE_LOCATION = "https://raw.githubusercontent.com/CarloFalco/ArduinoTest/refs/heads/Mqtt/11_OTA/ESP_OTA/firmware.bin";
+const char* VERSION_URL = "https://raw.githubusercontent.com/CarloFalco/ArduinoTest/refs/heads/Mqtt/11_OTA/ESP_OTA/version.txt";
 
-const int current_fw_version = 2024120901;  // YYYYMMDDRR where R = release of the day
+const int current_fw_version = 2024120902;  // YYYYMMDDRR where R = release of the day
 
 ESP32GithubOtaUpdate otaUpdate;
 
@@ -74,5 +74,5 @@ void loop(){
   ledState = !ledState; // Inverti lo stato
   digitalWrite(LED_BUILTIN, ledState); // Imposta il nuovo stato
 
-  delay(1000);
+  delay(500);
 }

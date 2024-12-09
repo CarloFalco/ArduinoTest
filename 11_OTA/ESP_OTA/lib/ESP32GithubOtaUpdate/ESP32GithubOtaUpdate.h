@@ -143,7 +143,7 @@ bool ESP32GithubOtaUpdate::doVersionCheck() {
         if (httpCode > 0) {
           if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
             String server_fw_version = https.getString();     
-            Serial.println("Risposta del server:");
+            Serial.print("Risposta del server:");
             Serial.println(server_fw_version);       
             int new_fw_version_int = server_fw_version.toInt();            
             DEBUG_ESP32GOA("[doVersionCheck()]: Current FW version: %d. Server FW version: %d \r\n", _currentFirmwareVersion, new_fw_version_int);

@@ -6,7 +6,7 @@
 
 // URL del server
 //const char* serverUrl = "https://jsonplaceholder.typicode.com/posts/1"; // URL per il test
-const char* serverUrl = "https://raw.githubusercontent.com/CarloFalco/ArduinoTest/refs/heads/Mqtt/11_OTA/HttpsTest/version.txt";
+const char* serverUrl = "raw.githubusercontent.com/CarloFalco/ArduinoTest/refs/heads/Mqtt/11_OTA/ESP_OTA/version.txt";
 
 void setup() {
   Serial.begin(115200);
