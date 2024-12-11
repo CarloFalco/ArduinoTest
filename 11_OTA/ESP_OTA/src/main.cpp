@@ -1,8 +1,4 @@
-/*
- * Blink
- * Turns on an LED on for one second,
- * then off for one second, repeatedly.
- */
+#define ENABLE_ESP32_GITHUB_OTA_UPDATE_DEBUG Uncomment to enable logs.
 
 #include <Arduino.h>
 #include <WiFiClientSecure.h>
@@ -14,10 +10,10 @@
 const char* OTA_FILE_LOCATION = "https://raw.githubusercontent.com/CarloFalco/ArduinoTest/refs/heads/Mqtt/11_OTA/ESP_OTA/firmware.bin";
 const char* VERSION_URL = "https://raw.githubusercontent.com/CarloFalco/ArduinoTest/refs/heads/Mqtt/11_OTA/ESP_OTA/version.txt";
 
-const int current_fw_version = 2024120902;  // YYYYMMDDRR where R = release of the day
+const int current_fw_version = 2024121101;  // YYYYMMDDRR where R = release of the day
 
 ESP32GithubOtaUpdate otaUpdate;
-
+bool needToStayAlive = 0;
 #define LED_BUILTIN 97
 
 bool ledState = false; // Variabile per lo stato del LED
@@ -73,6 +69,6 @@ void loop(){
 
   ledState = !ledState; // Inverti lo stato
   digitalWrite(LED_BUILTIN, ledState); // Imposta il nuovo stato
-
-  delay(500);
+  Serial.print("needToStayAlive ST: ");
+  delay(1000);
 }

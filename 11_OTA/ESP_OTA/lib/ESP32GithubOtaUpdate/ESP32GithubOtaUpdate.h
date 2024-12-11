@@ -9,6 +9,7 @@
 #else
   #define DEBUG_ESP32GOA(x...) if (false) do { (void)0; } while (0)
 #endif
+extern bool needToStayAlive;
 
 class ESP32GithubOtaUpdate {
   public:
@@ -99,10 +100,12 @@ void ESP32GithubOtaUpdate::doFirmwareUpdate() {
     httpUpdate.rebootOnUpdate(true);
 
     httpUpdate.onStart([](void) {
-       DEBUG_ESP32GOA("[doFirmwareUpdate()]: Start downloading..\r\n");
+      needToStayAlive = 1;
+      DEBUG_ESP32GOA("[doFirmwareUpdate()]: Start downloading..\r\n");
     });
     httpUpdate.onEnd([](bool success) {
       DEBUG_ESP32GOA("[doFirmwareUpdate()]: Downloading ended.\r\n");
+      needToStayAlive = 0;
       //if (success) SPIFFS.remove("/update");
     });
     httpUpdate.onProgress([](int progress, int total) {
@@ -137,14 +140,11 @@ bool ESP32GithubOtaUpdate::doVersionCheck() {
        // Add a scoping block for HTTPClient https to make sure it is destroyed before WiFiClientSecure *client is 
       HTTPClient https;
       if (https.begin(*client, _versionCheckUrl)) {
-        Serial.println("HTTPS begin");
         int httpCode = https.GET();  
 
         if (httpCode > 0) {
           if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
             String server_fw_version = https.getString();     
-            Serial.print("Risposta del server:");
-            Serial.println(server_fw_version);       
             int new_fw_version_int = server_fw_version.toInt();            
             DEBUG_ESP32GOA("[doVersionCheck()]: Current FW version: %d. Server FW version: %d \r\n", _currentFirmwareVersion, new_fw_version_int);
             
@@ -202,7 +202,7 @@ void ESP32GithubOtaUpdate::setClock() {
 }
 
 void ESP32GithubOtaUpdate::begin() {
-  setClock();
+  // setClock();
 
   xTaskCreate([](void* o){ static_cast<ESP32GithubOtaUpdate*>(o)->checkForOTA(); },
           "ESP32OTAUpdateTask",    // Name of the task (for debugging)
