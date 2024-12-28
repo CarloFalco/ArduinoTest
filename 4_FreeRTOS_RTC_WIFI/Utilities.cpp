@@ -45,12 +45,12 @@ void check_DST(ESP32Time *rtc) {
   int day = dt.tm_mday;
   int hour = dt.tm_hour;
   int dayOfWeek = dt.tm_wday;
-/*
-  Serial.println("Month: " + String(month));   // (String) returns time with specified format
-  Serial.println("day: " + String(day));   // (String) returns time with specified format
-  Serial.println("hour: " + String(hour));   // (String) returns time with specified format
-  Serial.println("dayOfWeek: " + String(dayOfWeek));   // (String) returns time with specified format
-*/
+  /*
+    Serial.println("Month: " + String(month));   // (String) returns time with specified format
+    Serial.println("day: " + String(day));   // (String) returns time with specified format
+    Serial.println("hour: " + String(hour));   // (String) returns time with specified format
+    Serial.println("dayOfWeek: " + String(dayOfWeek));   // (String) returns time with specified format
+  */
 
 
   if (month == 3) {
@@ -78,9 +78,6 @@ void check_DST(ESP32Time *rtc) {
     }
   }
 }
-
-
-
 
 // FUNZIONI RELATIVE ALLA EEPROM
 void do_eprom_read() {
