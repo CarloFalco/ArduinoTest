@@ -1,0 +1,17 @@
+[
+  {
+    "Sourcefile": null,
+    "Include": "",
+    "Includepath": "C:\\Users\\carlo\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.0.7\\cores\\esp32"
+  },
+  {
+    "Sourcefile": null,
+    "Include": "",
+    "Includepath": "C:\\Users\\carlo\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.0.7\\variants\\esp32s3"
+  },
+  {
+    "Sourcefile": "D:\\Progetti\\ArduinoTest\\1_FreeRTOS\\03_FreeRTOS\\build\\sketch\\03_FreeRTOS.ino.cpp",
+    "Include": "",
+    "Includepath": null
+  }
+]
