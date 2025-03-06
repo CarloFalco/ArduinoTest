@@ -1,84 +1,142 @@
 #include <Wire.h>
+#include <SPI.h>
+
+
+
+#include "sensor_task.h"
+#include "data_type_conversion.h"
+
 
 #define LED_BUILTIN 97
 
-// dati relativi alla direzione del vento
-#define AS5600_ADDRESS 0x36
-#define RAW_ANGLE 0x0C
 
-
-
-// dati relativi al pluviometro
-#define AREA_PLUVIOMETRO 63.25 //11.5 x 5.5 = 63.25 cm2
-#define AREA_VASCHETTA 3 //3 ml ogni iterazione
-#define CONVERSIONE_PLUVIOMETRO 0.4743 // 3 x 10^-3 /( 63.25 x 10^-6) = 3 x 10^3 / 63.25 = 47.43  [mm h oppure Litri per m2 ora]
-
-#define CYCLE_RAIN_LENGTH 10 // tempo in secondi
-
-
-
-int rainSensorPin = 40; // Pin a cui è collegato il sensore a effetto Hall
-volatile int rainDroppCount = 0;
+// DEFINIZIONE DEL ANEMOMETRO
+Anemometer anemometer(ANEMOMETER_PIN, ANEMOMETER_DIAMETER);
+Windvane windvane(AS5600_ADDRESS);
+Raingauge raingauge;
+Adafruit_BME280 bme; 
+MICS6814 gasSensor;
+CCS811 co2Sensor(CCS811_ADDRESS);
+INA3211 ina3221;
 
 
 
 void setup() {
+  Wire.begin();
+  
+  Serial.begin(115200);
+  delay(500);
+  Serial.println("Hello");
+
   pinMode(LED_BUILTIN, OUTPUT);
   neopixelWrite(LED_BUILTIN,0,0,0);
   
-  pinMode(37, OUTPUT);
-  digitalWrite(37, HIGH);  // turn the LED on (HIGH is the voltage level)
+  pinMode(PSW_5V, OUTPUT);
+  digitalWrite(PSW_5V, HIGH);  // turn the 5V
 
+  pinMode(PSW_3V3, OUTPUT);
+  digitalWrite(PSW_3V3, HIGH);  // turn the 3.3V
+
+
+  delay(500);
+
+  // inizializzazione del anemometro e relativo tas  
   
-  Wire.begin();
-  Serial.begin(115200);
-  while (!Serial); // Attendi che la porta seriale sia pronta
-  Serial.println("AS5600 Magnet Position");
+  // --------- SETUP anemometer ---------- //
+  anemometer.begin();
+  // --------- SETUP raingauge ---------- //
+  raingauge.update();
+  // --------- SETUP BME280 ---------- //
+  bme.begin(BME280_ADDRESS);
+  // --------- SETUP mics6814 ---------- //
+  gasSensor.begin();
+  // --------- SETUP CCS811 ---------- //
+  co2Sensor.begin();
+  // --------- SETUP INA3221 ---------- //
+  ina3221.begin(INA_ADDRESS);
 
-  // inizializzazione sensore pioggia
-  attachInterrupt(digitalPinToInterrupt(rainSensorPin), countTray, FALLING);
 
 
+
+  ina3221.setAveragingMode(INA3221_AVG_16_SAMPLES);
+
+  // Set shunt resistances for all channels to 0.05 ohms
+  for (uint8_t i = 0; i < 3; i++) {
+    ina3221.setShuntResistance(i, 0.05);
+  }
+  // limits:
+  ina3221.setPowerValidLimits(3.0 /* lower limit */, 15.0 /* upper limit */);
+
+
+
+
+
+
+  neopixelWrite(LED_BUILTIN,64,0,0);
+  delay(1500);
+
+
+  // chiudo il task relativo al anemometro
+  anemometer.kill();
+  co2Sensor.readAlgorithmResults();
+
+  delay(1500);
+  neopixelWrite(LED_BUILTIN,0,64,0);
+  printSensor();
+  delay(1500);
 }
 
 void loop() {
+
+  co2Sensor.readAlgorithmResults();
+
+  printSensor();
+  delay(3000);
+
+
+}
+
+
+
+
+
+
+
+void printSensor(void){
+  Serial.println("-------------------------------");
+  Serial.println("Velocità del vento (media mobile): " + String(anemometer.getWindSpeed_ms()) + " [m/s]");
+  Serial.println("Velocità del vento (media mobile): " + String(anemometer.getWindSpeed_kph()) + " [km/h]");
+  Serial.println("Velocità del vento (media mobile): " + anemometer.getIntensityString());
+  Serial.println("");  
+  Serial.println("Direzione del vento: " + windvane.getDirection() + " []");
+  Serial.println("Velocità del vento: " + String(windvane.getWindAngle()) + " [*]");
+  Serial.println("");
+  Serial.println("Precipitazione: " + String(raingauge.getLevel()) + " [mm]");
+  Serial.println("");
+  Serial.println("Temperature = " + String(bme.readTemperature()) + " [*C]");
+  Serial.println("Humidity = " + String(bme.readHumidity()) + " [%]");
+  Serial.println("Pressure = " + String(bme.readPressure()) + " [hPa]");
+
+  Serial.println("");
+  Serial.println("Carbon Monoxide = " + String(gasSensor.getCO()) + " [ppm]");
+  Serial.println("Nitrogen Dioxide = " + String(gasSensor.getNO2()) + " [ppm]");
+  Serial.println("Ammonia = " + String(gasSensor.getNH3()) + " [ppm]");
+  Serial.println("");
+  Serial.println("Carbon Dioxide = " + String(co2Sensor.getCO2()) + " [ppm]");
+  Serial.println("Nitrogen Dioxide = " + String(co2Sensor.getTVOC()) + " [ppm]");
   
-  uint16_t rawAngle = readRawAngle();
-  float angle = (rawAngle * 360.0) / 4096.0; // Converti il valore grezzo in gradi
-  String direction = getDirection(angle);
-  Serial.print("Angle: " + String(angle) + " degrees \t Direction: " + direction +  "\n");
+  Serial.println("");
 
+  for (uint8_t i = 0; i < 3; i++) {
+    float voltage = ina3221.getBusVoltage(i);
+    float current = ina3221.getCurrentAmps(i) * 1000; // Convert to mA
+    Serial.print("Channel " + String(i) + ": ");
+    Serial.print("Voltage = " + String(voltage) + "[V] ");
+    Serial.println("Current = " + String(current) + " [mA]");
+  }
+  Serial.println("getPower: " + String(ina3221.getPower(2)));
+  Serial.println("SOC = " + String(ina3221.vbToSoc(ina3221.getBusVoltage(1)*1000)) + " [ %]");
 
-  float NIterazioniOra = rainDroppCount *  3600 / CYCLE_RAIN_LENGTH;
-  float LitriMetroOra = NIterazioniOra * CONVERSIONE_PLUVIOMETRO;
-  Serial.print("LitriMetroOra: " + String(LitriMetroOra) + "mm \n");
-
-  rainDroppCount = 0;
-  delay(CYCLE_RAIN_LENGTH*1000); // Attende mezzo secondo prima di ripetere il ciclo
 }
 
 
-void countTray() {
-  rainDroppCount++;
-}
-
-
-uint16_t readRawAngle() {
-  Wire.beginTransmission(AS5600_ADDRESS);
-  Wire.write(RAW_ANGLE);
-  Wire.endTransmission();
-  Wire.requestFrom(AS5600_ADDRESS, 2);
-  uint16_t rawAngle = Wire.read() << 8 | Wire.read();
-  return rawAngle;
-}
-
-String getDirection(float angle) {
-  if (angle >= 337.5 || angle < 22.5) return "N";
-  else if (angle >= 22.5 && angle < 67.5) return "NE";
-  else if (angle >= 67.5 && angle < 112.5) return "E";
-  else if (angle >= 112.5 && angle < 157.5) return "SE";
-  else if (angle >= 157.5 && angle < 202.5) return "S";
-  else if (angle >= 202.5 && angle < 247.5) return "SW";
-  else if (angle >= 247.5 && angle < 292.5) return "W";
-  else return "NW";
-}

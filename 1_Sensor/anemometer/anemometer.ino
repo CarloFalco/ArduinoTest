@@ -4,6 +4,7 @@
 
 const float pi = 3.14159;
 const int numElements = 5; // Numero di elementi per la media mobile
+
 #define TASK_ANEMOMETER 200  // Periodo del task in millisecondi
 
 class Anemometer {

@@ -36,3 +36,6 @@
 *.out
 *.app
 
+/1_Sensor/AllSensor/build
+/1_Sensor/AllSensor/old
+/1_Sensor/AllSensor/.vscode

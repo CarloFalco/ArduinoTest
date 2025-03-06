@@ -1,6 +1,10 @@
 #include <Wire.h>
 
 void setup() {
+  pinMode(37, OUTPUT);
+  digitalWrite(37, HIGH);  // turn the LED on (HIGH is the voltage level)
+  delay(300);
+  
   Wire.begin();
   Serial.begin(115200);
   while (!Serial); // Attendi che la porta seriale sia pronta
@@ -8,6 +12,9 @@ void setup() {
 }
 
 void loop() {
+  pinMode(37, OUTPUT);
+  digitalWrite(37, HIGH);  // turn the LED on (HIGH is the voltage level)
+
   byte error, address;
   int nDevices;
 
