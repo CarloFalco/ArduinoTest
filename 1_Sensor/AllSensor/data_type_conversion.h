@@ -80,4 +80,25 @@ int PSW_3V3 = 38;
 #define SLEEP_TIME 10 // TIME since next wake up [s]
 #define AWAKE_TIME 
 
+
+
+
+#define MAX_NH3 35
+#define MIN_NH3 25
+
+#define MAX_NO2 0.021
+#define MAX_NO2 0.1
+
+#define MAX_CO2 15000
+#define MIN_CO2 5000
+
+#define MAX_CO 100
+#define MIN_CO 20
+
+
+// 0,3 mg/m³ ; 0,3 - 0,5 mg/m³; 0,5 - 1 mg/m³, 1 - 3 mg/m³, Oltre 3 mg/m³
+#define MAX_TVOC 600
+#define MIN_TVOC 100
+
+
 #endif

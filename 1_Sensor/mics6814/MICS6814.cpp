@@ -230,6 +230,19 @@ float MICS6814 :: getCurrentRatio (channel_t channel) const{
 	return -1.0;
 }
 
+float MICS6814::getCO(){
+  return measureMICS(CO);
+}
+
+float MICS6814::getNO2(){
+  return measureMICS(NO2);
+}
+
+float MICS6814::getNH3(){    
+  return measureMICS(NH3);
+  
+}
+
 void MICS6814::getAll(MICS&  mics, int fullParam = 0){
 
   if (fullParam) {

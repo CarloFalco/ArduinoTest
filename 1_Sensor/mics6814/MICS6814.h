@@ -33,7 +33,10 @@ public:
 	int begin();
 	float measureMICS(gas_t gas);
   void getAll(MICS& , int);
-
+  
+  float getCO();
+  float getNO2();
+  float getNH3();
 
 private:
 	uint16_t getResistance    (channel_t channel) const;

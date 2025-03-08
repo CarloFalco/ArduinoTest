@@ -26,36 +26,51 @@
 
   https://www.arduino.cc/en/Tutorial/BuiltInExamples/AnalogInput
 */
+#include <driver/adc.h>
 
-int sensorPin = A0;    // select the input pin for the potentiometer
+#define BIT_NUM = 4096.0
+
 int ledPin = 13;      // select the pin for the LED
 int BitsensorValueN = 0;  // variable to store the value coming from the sensor
 float BitsensorValue = 0;  // variable to store the value coming from the sensor
 float Voltsensor1 = 0;  // Voltage on the sensor
 float Voltsensor2 = 0;  // Voltage on the pin
 
+
+
 void setup() {
   // declare the ledPin as an OUTPUT:
   pinMode(ledPin, OUTPUT);
-  Serial.begin(9600); 
+  Serial.begin(9600);   
+  
+  
+  adc1_config_width(ADC_WIDTH_BIT_12);
+  adc1_config_channel_atten(ADC1_CHANNEL_3, ADC_ATTEN_DB_11); 
 }
 
 void loop() {
   // read the value from the sensor:
+
   for (int i = 1; i<=15; i ++){
-    BitsensorValueN = BitsensorValueN + analogRead(sensorPin);
+    BitsensorValueN = BitsensorValueN + adc1_get_raw(ADC1_CHANNEL_3);
     delayMicroseconds(100);
-    } 
+  } 
+
+
   BitsensorValue = BitsensorValueN/15;
-  Voltsensor2 = BitsensorValue*3.35/4095+0.14;
-  Voltsensor1 = Voltsensor2*15/10;
+
+
+  Voltsensor2 = map(BitsensorValue, 0, BIT_NUM, 0, 3300)/1000.0;
+
+
+
+
   Serial.print(BitsensorValue); 
   Serial.print(" [bit]  |   ");
   
   Serial.print(Voltsensor2); 
   Serial.print(" [V]  |   ");
-  Serial.print(Voltsensor1); 
-  Serial.println(" [V]");
+
   delay(500);
   BitsensorValueN = 0;
 } 

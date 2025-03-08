@@ -6,6 +6,9 @@
 #include <Adafruit_INA3221.h>
 #include "MICS6814.h"
 #include "SparkFunCCS811.h"
+#include "Adafruit_PM25AQI.h"
+
+
 
 #include "data_type_conversion.h"
 
@@ -21,6 +24,7 @@ float matLinInt(float x1, float x2, float y1, float y2, float x0){
 }
 
 // ANEMOMETRO
+
 
 
 class Anemometer {
