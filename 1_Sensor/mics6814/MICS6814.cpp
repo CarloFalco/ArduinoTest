@@ -2,15 +2,22 @@
 #include <driver/adc.h>
 
 #define maxIter 2
-#define maxIterCalib 20
+#define maxIterCalib 400
 
+// RED -> CO -> ADC1_CHANNEL_4
+// NH3 -> NH3 -> ADC1_CHANNEL_5
+// OX -> NO2 -> ADC1_CHANNEL_6
+
+#define PIN_RED ADC1_CHANNEL_4
+#define PIN_NH3 ADC1_CHANNEL_5
+#define PIN_OX ADC1_CHANNEL_6
 
 MICS6814 :: MICS6814 (){
 
   adc1_config_width(ADC_WIDTH_BIT_12);
-  adc1_config_channel_atten(ADC1_CHANNEL_3, ADC_ATTEN_DB_11); 
-  adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_DB_11); 
-  adc1_config_channel_atten(ADC1_CHANNEL_5, ADC_ATTEN_DB_11); 
+  adc1_config_channel_atten(PIN_NH3, ADC_ATTEN_DB_11); 
+  adc1_config_channel_atten(PIN_RED, ADC_ATTEN_DB_11); 
+  adc1_config_channel_atten(PIN_OX, ADC_ATTEN_DB_11); 
 
 
 }
@@ -59,25 +66,25 @@ int MICS6814 :: begin (){
 
   do {
     // Wait a second
-    delay(100);
+    delay(500);
     Serial.print(".");
     // Read new resistances
     unsigned long rs = 0;
     for (int i = 0; i < 3; i++) {
     delay(2);
-    rs += (adc1_get_raw(ADC1_CHANNEL_3)+1)/4-1;
+    rs += (adc1_get_raw(PIN_NH3)+1)/4-1;
     }
     curNH3 = rs/3;
     rs = 0;
     for (int i = 0; i < 3; i++) {
     delay(2);
-    rs += (adc1_get_raw(ADC1_CHANNEL_4)+1)/4-1;
+    rs += (adc1_get_raw(PIN_RED)+1)/4-1;
     }
     curRED = rs/3;
     rs = 0;
     for (int i = 0; i < 3; i++) {
     delay(2);
-    rs += (adc1_get_raw(ADC1_CHANNEL_5)+1)/4-1;
+    rs += (adc1_get_raw(PIN_OX)+1)/4-1;
     }
     curOX = rs/3;
 
@@ -102,23 +109,6 @@ int MICS6814 :: begin (){
     pntrRED = (pntrRED + 1) % seconds;
     pntrOX = (pntrOX + 1) % seconds;
 
-    /*
-    if(!NH3stable) {
-      Serial.print("(NH3:");
-      Serial.print(abs(fltSumNH3 / seconds - curNH3));
-      Serial.print(")");
-    }
-    if(!REDstable) {
-      Serial.print("(RED:");
-      Serial.print(abs(fltSumNH3 / seconds - curRED));
-      Serial.print(")");
-    }
-    if(!OXstable) {
-      Serial.print("(OX:");
-      Serial.print(abs(fltSumNH3 / seconds - curOX));
-      Serial.print(")");
-    }
-    */
   count += 1;
   } while (( !NH3stable || !REDstable || !OXstable ) && count < maxIterCalib);
 
@@ -126,7 +116,17 @@ int MICS6814 :: begin (){
   REDbaseR = fltSumRED / seconds;
   OXbaseR = fltSumOX / seconds;
 
+  Serial.print("NH3:");
+  Serial.print(NH3baseR);
+  Serial.print(", ");
+  Serial.print("NO2:");
+  Serial.print(OXbaseR);
+  Serial.print(", ");
+  Serial.print("CO:");
+  Serial.println(REDbaseR);
+
   if (count > maxIterCalib-1){
+    Serial.print("Calibration Fail");
     return 0;
   }else{
     return 1;
@@ -136,18 +136,58 @@ int MICS6814 :: begin (){
 float MICS6814 :: measureMICS (gas_t gas){
 	float ratio;
 	float c = 0;
+  unsigned long rawPin = 0;
+  float rawVolt = 0;
+
 	switch (gas){
     case CO: // Carbon Monoxide, a chemical compound composed of one carbon atom and one oxygen atom.
       ratio = getCurrentRatio (CH_RED);
       c = pow (ratio, -1.179) * 4.385;
+
+
+      
+      for (int i = 0; i < 3; i++) {
+      delay(10);
+      rawPin += (adc1_get_raw(PIN_RED));
+      }
+      rawPin = rawPin/3;
+      rawVolt = map(rawPin, 0, 4096, 0, 3300);
+      Serial.print("\n");
+      Serial.print("Volt:");
+      Serial.println(rawPin);
+
       break;
     case NO2: // Nitrogen Dioxide, a chemical compound composed of one nitrogen atom and two oxygen atoms.
       ratio = getCurrentRatio(CH_OX);
       c = pow(ratio, 1.007) / 6.855;
+
+      for (int i = 0; i < 3; i++) {
+        delay(10);
+        rawPin += (adc1_get_raw(PIN_OX));
+      }
+      rawPin = rawPin/3;
+      rawVolt = map(rawPin, 0, 4096, 0, 3300);
+      Serial.print("\n");
+      Serial.print("Volt NO2:");
+      Serial.println(rawVolt);
+
+
       break;
     case NH3: // Ammonia, a chemical compound composed of one nitrogen atom and three hydrogen atoms.
       ratio = getCurrentRatio (CH_NH3);
       c = pow (ratio, -1.67) / 1.47;
+
+      for (int i = 0; i < 3; i++) {
+        delay(10);
+        rawPin += (adc1_get_raw(PIN_NH3));
+      }
+      rawPin = rawPin/3;
+      rawVolt = map(rawPin, 0, 4096, 0, 3300);
+      Serial.print("\n");
+      Serial.print("Volt NH3:");
+      Serial.println(rawVolt);
+
+
       break;
     case C3H8: // Propane, a hydrocarbon compound consisting of three carbon atoms and eight hydrogen atoms.
       ratio = getCurrentRatio(CH_NH3);
@@ -183,21 +223,21 @@ uint16_t MICS6814 :: getResistance (channel_t channel) const{
 	case CH_RED:
 		for (int i = 0; i <maxIter; i ++)
 		{
-			rs += (adc1_get_raw(ADC1_CHANNEL_4)+1)/4-1;
+			rs += (adc1_get_raw(PIN_RED)+1)/4-1;
 			counter ++;
 			delay (2);
 		}
 	case CH_OX:
 		for (int i = 0; i <maxIter; i ++)
 		{
-			rs += (adc1_get_raw(ADC1_CHANNEL_5)+1)/4-1;
+			rs += (adc1_get_raw(PIN_OX)+1)/4-1;
 			counter ++;
 			delay (2);
 		}
 	case CH_NH3:
 		for (int i = 0; i <maxIter; i ++)
 		{
-			rs += (adc1_get_raw(ADC1_CHANNEL_3)+1)/4-1;
+			rs += (adc1_get_raw(PIN_NH3)+1)/4-1;
 			counter ++;
 			delay (2);
 		}

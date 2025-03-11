@@ -3,32 +3,38 @@
 #include <driver/adc.h>
 
 
-// Definizione dei pin dei sensori
-const int pinNO2 = A3;
-const int pinNH3 = A4;
-const int pinCO = A5;
 
+
+// nh3 1218, no2 3673, co 4095
+// nh3 1147, no2 3724, co 4095
+// nh3 1153, no2 3718, co 4095
+// NH3 923, no2 268, CO 1023
 
 
 MICS6814 gasSensor;
 int analogValue = 0;
+
+#define PIN_5V 4
+#define PIN_3V 11
 
 
 #define LED_BUILTIN 97
 
 // the setup function runs once when you press reset or power the board
 void setup() {
-  pinMode(38, OUTPUT);
-  digitalWrite(38, HIGH);  // turn the 3.3V
-  pinMode(37, OUTPUT);
-  digitalWrite(37, HIGH);  // turn the 3.3V
+  pinMode(PIN_3V, OUTPUT);
+  digitalWrite(PIN_3V, HIGH);  // turn the 3.3V
+  pinMode(PIN_5V, OUTPUT);
+  digitalWrite(PIN_5V, HIGH);  // turn the 5V
 
 
   Serial.begin(115200);
 
   // initialize digital pin LED_BUILTIN as an output.
   pinMode(LED_BUILTIN, OUTPUT);
-  gasSensor.begin();
+  Serial.print("Initializzation: ");
+  Serial.println(gasSensor.begin());
+
 
 }
 

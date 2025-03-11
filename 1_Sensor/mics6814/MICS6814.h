@@ -37,10 +37,10 @@ public:
   float getCO();
   float getNO2();
   float getNH3();
+	uint16_t getBaseResistance(channel_t channel) const;
 
 private:
 	uint16_t getResistance    (channel_t channel) const;
-	uint16_t getBaseResistance(channel_t channel) const;
 	float    getCurrentRatio  (channel_t channel) const;
 
 
