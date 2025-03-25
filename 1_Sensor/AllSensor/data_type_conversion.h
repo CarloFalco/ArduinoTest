@@ -27,9 +27,8 @@
 
 // POWERLINE
 
-int PSW_5V = 37;
-int PSW_3V3 = 38;
-
+#define PIN_5V GPIO_NUM_4
+#define PIN_3V GPIO_NUM_11
 
 
 /* qui potrei metterci la configurazione dei sensori? */
@@ -37,10 +36,11 @@ int PSW_3V3 = 38;
 // #define DEBUG_SENSOR // enable serial print for debug
 
 // ANEMOMETER
-#define ANEMOMETER_PIN 39
+#define PIN_ANEMOMETER GPIO_NUM_19
 
 #define ANEMOMETER_DIAMETER 80 * 2 * mm_TO_m_FACTOR
 #define TASK_ANEMOMETER 200  // Periodo del task in millisecondi
+
 
 // WINDVANE
 #define AS5600_ADDRESS 0x36
@@ -49,7 +49,7 @@ int PSW_3V3 = 38;
 
 
 // RAINGAUGE
-#define RAINGAUGE_PIN 40
+#define PIN_RAINGAUGE GPIO_NUM_20
 
 
 #define AREA_PLUVIOMETRO 63.25 //11.5 x 5.5 = 63.25 cm2
@@ -58,19 +58,23 @@ int PSW_3V3 = 38;
 
 #define CYCLE_RAIN_LENGTH 10 // tempo in secondi
 
+
 // TERMOMETER
 #define BME280_ADDRESS 0x76
 
-// GASSENSOR MICS6814   
 
-#define CO_PIN ADC1_CHANNEL_3 // TODO: questa parte non è stata inserita nel codice
-#define NH3_PIN ADC1_CHANNEL_4
-#define NO2_PIN ADC1_CHANNEL_5
+// GASSENSOR MICS6814   
+#define PIN_CO  ADC1_CHANNEL_4
+#define PIN_NO2 ADC1_CHANNEL_5
+#define PIN_NH3 ADC1_CHANNEL_6
+
 
 // GASSENSOR CCS811
 #define CCS811_ADDRESS 0x5A
-// il pin wak va messo a maasa per accenderlo
+#define PIN_WAK GPIO_NUM_41
 
+
+// il pin wak va messo a maasa per accenderlo
 
 // GASSENSOR INA
 #define INA_ADDRESS 0x40
@@ -78,7 +82,9 @@ int PSW_3V3 = 38;
 
 // SCHEDULER INFORMATION
 #define SLEEP_TIME 10 // TIME since next wake up [s]
-#define AWAKE_TIME 
+#define AWAKE_TIME 60
+
+
 
 
 
