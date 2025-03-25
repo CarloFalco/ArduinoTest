@@ -2,7 +2,7 @@
 #include <SPI.h>
 #include <ArduinoJson.h>
 
-
+#include "driver/gpio.h"
 #include "sensor_task.h"
 #include "data_type_conversion.h"
 
@@ -11,11 +11,11 @@
 #define MAX_JSON_SIZE 4095
 
 // DEFINIZIONE DEL ANEMOMETRO
-Anemometer anemometer(ANEMOMETER_PIN, ANEMOMETER_DIAMETER);
+Anemometer anemometer(PIN_ANEMOMETER, ANEMOMETER_DIAMETER);
 Windvane windvane(AS5600_ADDRESS);
 Raingauge raingauge;
 Adafruit_BME280 bme; 
-MICS6814 gasSensor;
+MICS6814 gasSensor(PIN_CO, PIN_NO2, PIN_NH3);
 CCS811 co2Sensor(CCS811_ADDRESS);
 INA3211 ina;
 Adafruit_PM25AQI aqi = Adafruit_PM25AQI();
@@ -36,12 +36,14 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   neopixelWrite(LED_BUILTIN,0,0,0);
   
-  pinMode(PSW_5V, OUTPUT);
-  digitalWrite(PSW_5V, HIGH);  // turn the 5V
+  pinMode(PIN_5V, OUTPUT);
+  digitalWrite(PIN_5V, HIGH);  // turn the 5V
 
-  pinMode(PSW_3V3, OUTPUT);
-  digitalWrite(PSW_3V3, HIGH);  // turn the 3.3V
+  pinMode(PIN_3V, OUTPUT);
+  digitalWrite(PIN_3V, HIGH);  // turn the 3.3V
 
+  pinMode(PIN_WAK, OUTPUT);
+  digitalWrite(PIN_WAK, LOW);  // turn the WAK
 
   delay(500);
 
@@ -54,7 +56,7 @@ void setup() {
   // --------- SETUP BME280 ---------- //
   bme.begin(BME280_ADDRESS);
   // --------- SETUP mics6814 ---------- //
-  gasSensor.begin();
+  gasSensor.begin(false);
   // --------- SETUP CCS811 ---------- //
   co2Sensor.begin();
   // --------- SETUP INA3221 ---------- //
@@ -73,10 +75,6 @@ void setup() {
   }
   // limits:
   ina.setPowerValidLimits(3.0 /* lower limit */, 15.0 /* upper limit */);
-
-
-
-
 
 
   neopixelWrite(LED_BUILTIN,64,0,0);
@@ -125,9 +123,9 @@ void printSensor(void){
 
 
   Serial.println("");
-  Serial.println("Carbon Monoxide = " + String(gasSensor.getCO()) + " [ppm]");
-  Serial.println("Nitrogen Dioxide = " + String(gasSensor.getNO2()) + " [ppm]");
-  Serial.println("Ammonia = " + String(gasSensor.getNH3()) + " [ppm]");
+  Serial.println("Carbon Monoxide = " + String(gasSensor.measure(CO)) + " [ppm]");
+  Serial.println("Nitrogen Dioxide = " + String(gasSensor.measure(NO2)) + " [ppm]");
+  Serial.println("Ammonia = " + String(gasSensor.measure(NH3)) + " [ppm]");
 
 
   Serial.println("");
@@ -200,9 +198,9 @@ void to_json(char * json){
   air_quality["co2"] = String(co2Sensor.getCO2(), 2);
   air_quality["nox"] = String(co2Sensor.getTVOC(), 2);
 
-  air_quality["co"] = String(gasSensor.getCO(), 2);
-  air_quality["nh3"] = String(gasSensor.getNH3(), 2);
-  air_quality["no2"] = String(gasSensor.getNO2(), 2);
+  air_quality["co"] = String(gasSensor.measure(CO), 2);
+  air_quality["nh3"] = String(gasSensor.measure(NO2), 2);
+  air_quality["no2"] = String(gasSensor.measure(NH3), 2);
 
 
   air_quality["pm10"] = String(pmSensor.pm100_standard);

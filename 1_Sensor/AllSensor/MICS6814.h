@@ -12,28 +12,31 @@ typedef enum{
   CO, NO2, NH3, C3H8, C4H10, CH4, H2, C2H5OH
 } gas_t;
 
-
-class MICS6814{
-
+class MICS6814
+{
 public:
-	MICS6814();
 
-	int begin();
-	float measureMICS(gas_t gas);
-  float getCO();
-  float getNO2();
-  float getNH3();
+	MICS6814(adc1_channel_t pinCO, adc1_channel_t pinNO2, adc1_channel_t pinNH3);
+  void begin(bool EnableCalibrationProcedure);
+	int calibrate();
+	void loadCalibrationData(
+		uint16_t base_NH3,
+		uint16_t base_RED,
+		uint16_t base_OX);
 
+	float measure(gas_t gas);
 
-private:
 	uint16_t getResistance    (channel_t channel) const;
 	uint16_t getBaseResistance(channel_t channel) const;
 	float    getCurrentRatio  (channel_t channel) const;
+private:
+	adc1_channel_t _pinCO;
+	adc1_channel_t _pinNO2;
+	adc1_channel_t _pinNH3;
 
-
-	uint16_t NH3baseR;
-	uint16_t REDbaseR;
-	uint16_t OXbaseR;
+	uint16_t _baseNH3;
+	uint16_t _baseCO;
+	uint16_t _baseNO2;
 };
 
 #endif

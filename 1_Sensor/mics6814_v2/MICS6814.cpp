@@ -1,12 +1,28 @@
 #include "MICS6814.h"
 
-MICS6814 :: MICS6814 (int pinCO, int pinNO2, int pinNH3)
-{
+
+MICS6814 :: MICS6814 (adc1_channel_t pinCO, adc1_channel_t pinNO2, adc1_channel_t pinNH3){
 	_pinCO = pinCO;
 	_pinNO2 = pinNO2;
 	_pinNH3 = pinNH3;
+
 }
 
+
+void MICS6814 :: begin(bool a) {
+  adc1_config_width(ADC_WIDTH_BIT_12);
+  adc1_config_channel_atten(_pinCO, ADC_ATTEN_DB_12); 
+  adc1_config_channel_atten(_pinNO2, ADC_ATTEN_DB_12); 
+  adc1_config_channel_atten(_pinNH3, ADC_ATTEN_DB_12); 
+  if (a) {
+    Serial.println("calibration");
+    calibrate();
+  }
+  else{
+    Serial.println("Load Parameters");
+    loadCalibrationData(923, 4095, 3262);
+  }
+}
 /**
  * Calibrates MICS-6814 before use
  *
@@ -18,20 +34,21 @@ MICS6814 :: MICS6814 (int pinCO, int pinNO2, int pinNH3)
  * If the current measurement is close to average,
  * we believe that the calibration was successful.
  */
-void MICS6814 :: calibrate ()
+int MICS6814 :: calibrate ()
 {
 	// The number of seconds that must pass before
 	// than we will assume that the calibration is complete
 	// (Less than 64 seconds to avoid overflow)
 	uint8_t seconds = 10;
-
+  int maxIterCalib = 500;
 	// Tolerance for the average of the current value
 	uint8_t delta = 2;
+  int count = 0;
 
 	// Measurement buffers
-	uint16_t bufferNH3 [seconds];
-	uint16_t bufferCO [seconds];
-	uint16_t bufferNO2 [seconds];
+	uint16_t bufferNH3[seconds];
+	uint16_t bufferCO[seconds];
+	uint16_t bufferNO2[seconds];
 
 	// Pointers for the next item in the buffer
 	uint8_t pntrNH3 = 0;
@@ -56,57 +73,48 @@ void MICS6814 :: calibrate ()
 	// We kill the buffer with zeros
 	for (int i = 0; i <seconds; ++ i)
 	{
-		bufferNH3 [i] = 0;
-		bufferCO [i] = 0;
-		bufferNO2 [i] = 0;
+		bufferNH3[i] = 0;
+		bufferCO[i] = 0;
+		bufferNO2[i] = 0;
 	}
 
 	// Calibrate
 	do
 	{
-		delay (1000);
+		delay (100);
+    Serial.print(".");
 
 		unsigned long rs = 0;
-
-		delay (50);
-		for (int i = 0; i <3; i ++)
-		{
-			delay (1);
-			rs + = analogRead (_pinNH3);
+		for (int i = 0; i <3; i ++)	{
+			delay (2);
+			rs += adc1_get_raw(_pinNH3);
 		}
-
 		curNH3 = rs / 3;
-		rs = 0;
-
-		delay (50);
-		for (int i = 0; i <3; i ++)
-		{
+		
+    rs = 0;
+		for (int i = 0; i <3; i ++){
 			delay (1);
-			rs + = analogRead (_pinCO);
+			rs += adc1_get_raw (_pinCO);
 		}
-
 		curCO = rs / 3;
-		rs = 0;
-
-		delay (50);
-		for (int i = 0; i <3; i ++)
-		{
+		
+    rs = 0;
+		for (int i = 0; i <3; i ++){
 			delay (1);
-			rs + = analogRead (_pinNO2);
+			rs += adc1_get_raw (_pinNO2);
 		}
-
 		curNO2 = rs / 3;
 
 		// Update the floating amount by subtracting the value, 
 		// to be overwritten, and adding a new value.
-		fltSumNH3 = fltSumNH3 + curNH3 - bufferNH3 [pntrNH3];
-		fltSumCO = fltSumCO + curCO - bufferCO [pntrCO];
-		fltSumNO2 = fltSumNO2 + curNO2 - bufferNO2 [pntrNO2];
+		fltSumNH3 = fltSumNH3 + curNH3 - bufferNH3[pntrNH3];
+		fltSumCO = fltSumCO + curCO - bufferCO[pntrCO];
+		fltSumNO2 = fltSumNO2 + curNO2 - bufferNO2[pntrNO2];
 
 		// Store d buffer new values
-		bufferNH3 [pntrNH3] = curNH3;
-		bufferCO [pntrCO] = curCO;
-		bufferNO2 [pntrNO2] = curNO2; 
+		bufferNH3[pntrNH3] = curNH3;
+		bufferCO[pntrCO] = curCO;
+		bufferNO2[pntrNO2] = curNO2; 
 
 		// Define flag states
 		isStableNH3 = abs (fltSumNH3 / seconds - curNH3) <delta;
@@ -117,11 +125,32 @@ void MICS6814 :: calibrate ()
 		pntrNH3 = (pntrNH3 + 1)% seconds;
 		pntrCO = (pntrCO + 1)% seconds;
 		pntrNO2 = (pntrNO2 + 1)% seconds;
-	} while (!isStableNH3 ||!isStableCO ||!isStableNO2);
+  count += 1;
+	} while ((!isStableNH3 ||!isStableCO ||!isStableNO2) && count < maxIterCalib);
 
 	_baseNH3 = fltSumNH3 / seconds;
 	_baseCO = fltSumCO / seconds;
 	_baseNO2 = fltSumNO2 / seconds;
+
+  Serial.println("");
+  Serial.print("Calibration DONE");
+  Serial.print("NH3:");
+  Serial.print(_baseNH3);
+  Serial.print(", ");
+  Serial.print("NO2:");
+  Serial.print(_baseNO2);
+  Serial.print(", ");
+  Serial.print("CO:");
+  Serial.println(_baseCO);
+
+  if (count > maxIterCalib-1){
+    Serial.print("Calibration Fail");
+    return 0;
+  }else{
+    return 1;
+  }
+
+
 }
 
 void MICS6814 :: loadCalibrationData (
@@ -147,23 +176,41 @@ float MICS6814 :: measure (gas_t gas)
 {
 	float ratio;
 	float c = 0;
-
 	switch (gas)
 	{
 	case CO:
-		ratio = getCurrentRatio (CH_CO);
+		ratio = getCurrentRatio (CH_RED);
 		c = pow (ratio, -1.179) * 4.385;
 		break;
 	case NO2:
-		ratio = getCurrentRatio (CH_NO2);
+		ratio = getCurrentRatio (CH_OX);
 		c = pow (ratio, 1.007) / 6.855;
 		break;
 	case NH3:
 		ratio = getCurrentRatio (CH_NH3);
 		c = pow (ratio, -1.67) / 1.47;
-		break;
-	}
-
+    break;
+  case C3H8: // Propane, a hydrocarbon compound consisting of three carbon atoms and eight hydrogen atoms.
+    ratio = getCurrentRatio(CH_NH3);
+    c = pow(ratio, -2.518) * 570.164;
+    break;
+  case C4H10: // Butane, another hydrocarbon compound consisting of four carbon atoms and ten hydrogen atoms.
+    ratio = getCurrentRatio(CH_NH3);
+    c = pow(ratio, -2.138) * 398.107;
+    break; 
+  case CH4: // Methane, a simple hydrocarbon compound composed of one carbon atom and four hydrogen atoms.
+    ratio = getCurrentRatio(CH_RED);
+    c = pow(ratio, -4.363) * 630.957;
+    break;
+  case H2: // Hydrogen, a hydrogen molecule composed of two hydrogen atoms covalently bonded.
+    ratio = getCurrentRatio(CH_RED);
+    c = pow(ratio, -1.8) * 0.73;
+    break;
+  case C2H5OH: // Ethanol, a chemical compound also known as ethyl alcohol, composed of two carbon atoms, six hydrogen atoms, and one oxygen atom.
+    ratio = getCurrentRatio(CH_RED);
+    c = pow(ratio, -1.552) * 1.622;
+    break;
+  }
 	return isnan (c)? -1: c;
 }
 
@@ -184,24 +231,24 @@ uint16_t MICS6814 :: getResistance (channel_t channel) const
 
 	switch (channel)
 	{
-	case CH_CO:
+	case CH_RED:
 		for (int i = 0; i <100; i ++)
 		{
-			rs += analogRead (_pinCO);
+			rs += adc1_get_raw (_pinCO);
 			counter ++;
 			delay (2);
 		}
-	case CH_NO2:
+	case CH_OX:
 		for (int i = 0; i <100; i ++)
 		{
-			rs += analogRead (_pinNO2);
+			rs += adc1_get_raw (_pinNO2);
 			counter ++;
 			delay (2);
 		}
 	case CH_NH3:
 		for (int i = 0; i <100; i ++)
 		{
-			rs += analogRead (_pinNH3);
+			rs += adc1_get_raw (_pinNH3);
 			counter ++;
 			delay (2);
 		}
@@ -216,9 +263,9 @@ uint16_t MICS6814 :: getBaseResistance (channel_t channel) const
 	{
 	case CH_NH3:
 		return _baseNH3;
-	case CH_CO:
+	case CH_RED:
 		return _baseCO;
-	case CH_NO2:
+	case CH_OX:
 		return _baseNO2;
 	}
 

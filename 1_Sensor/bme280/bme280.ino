@@ -22,8 +22,8 @@
 
 Adafruit_BME280 bme; // use I2C interface
 
-int PSW_5V = 37;
-int PSW_3V3 = 38;
+#define PIN_5V 4
+#define PIN_3V 11
 
 typedef struct {
   float BME280[3];    // Flag di abilitazione notifiche utenti [1/0] abilitato/non abilitato
@@ -39,12 +39,11 @@ void setup() {
   // --------- SETUP BME280 ---------- //
   // --------- SETUP BME280 ---------- //
 
+  pinMode(PIN_3V, OUTPUT);
+  digitalWrite(PIN_3V, HIGH);  // turn the 3.3V
+  pinMode(PIN_5V, OUTPUT);
+  digitalWrite(PIN_5V, HIGH);  // turn the 5V
 
-  pinMode(PSW_5V, OUTPUT);
-  digitalWrite(PSW_5V,HIGH);
-
-  pinMode(PSW_3V3, OUTPUT);
-  digitalWrite(PSW_3V3,HIGH);
 
 
   if (!bme.begin(0x76)) {

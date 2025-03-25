@@ -69,11 +69,3 @@ void loop() {
   Serial.println("");
 }
 
-
-int CO_ppm(double rawValue){
-    
-    Serial.println(rawValue);
-    double ppm = 3.027*exp(1.0698*(rawValue*3.3/4095));
-    Serial.println(ppm);
-    return ppm;
-}

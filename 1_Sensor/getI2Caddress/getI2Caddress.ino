@@ -1,8 +1,18 @@
 #include <Wire.h>
+#define PIN_5V 4
+#define PIN_3V 11
+
+
+
 
 void setup() {
-  pinMode(37, OUTPUT);
-  digitalWrite(37, HIGH);  // turn the LED on (HIGH is the voltage level)
+  pinMode(PIN_3V, OUTPUT);
+  digitalWrite(PIN_3V, HIGH);  // turn the 3.3V
+  pinMode(PIN_5V, OUTPUT);
+  digitalWrite(PIN_5V, HIGH);  // turn the 5V
+  pinMode(41, OUTPUT);
+  digitalWrite(41, LOW);  // turn WAK Pin low
+
   delay(300);
   
   Wire.begin();
@@ -12,8 +22,7 @@ void setup() {
 }
 
 void loop() {
-  pinMode(37, OUTPUT);
-  digitalWrite(37, HIGH);  // turn the LED on (HIGH is the voltage level)
+
 
   byte error, address;
   int nDevices;

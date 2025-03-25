@@ -2,27 +2,23 @@
 #define MICS6814_H
 
 #include "Arduino.h"
+#include <driver/adc.h>
 
-typedef enum
-{
-	CH_CO,
-	CH_NO2,
-	CH_NH3
+typedef enum{
+  CH_NH3, CH_RED, CH_OX
 } channel_t;
 
-typedef enum
-{
-	CO,
-	NO2,
-	NH3
+typedef enum{
+  CO, NO2, NH3, C3H8, C4H10, CH4, H2, C2H5OH
 } gas_t;
 
 class MICS6814
 {
 public:
-	MICS6814(int pinCO, int pinNO2, int pinNH3);
 
-	void calibrate();
+	MICS6814(adc1_channel_t pinCO, adc1_channel_t pinNO2, adc1_channel_t pinNH3);
+  void begin(bool a);
+	int calibrate();
 	void loadCalibrationData(
 		uint16_t base_NH3,
 		uint16_t base_RED,
@@ -34,9 +30,9 @@ public:
 	uint16_t getBaseResistance(channel_t channel) const;
 	float    getCurrentRatio  (channel_t channel) const;
 private:
-	uint8_t _pinCO;
-	uint8_t _pinNO2;
-	uint8_t _pinNH3;
+	adc1_channel_t _pinCO;
+	adc1_channel_t _pinNO2;
+	adc1_channel_t _pinNH3;
 
 	uint16_t _baseNH3;
 	uint16_t _baseCO;

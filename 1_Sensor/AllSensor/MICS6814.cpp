@@ -1,139 +1,179 @@
 #include "MICS6814.h"
-#include <driver/adc.h>
-
-#define maxIter 2
-#define maxIterCalib 20
 
 
-MICS6814 :: MICS6814 (){
-
-  adc1_config_width(ADC_WIDTH_BIT_12);
-  adc1_config_channel_atten(ADC1_CHANNEL_3, ADC_ATTEN_DB_11); 
-  adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_DB_11); 
-  adc1_config_channel_atten(ADC1_CHANNEL_5, ADC_ATTEN_DB_11); 
-
+MICS6814 :: MICS6814 (adc1_channel_t pinCO, adc1_channel_t pinNO2, adc1_channel_t pinNH3){
+	_pinCO = pinCO;
+	_pinNO2 = pinNO2;
+	_pinNH3 = pinNH3;
 
 }
 
-int MICS6814 :: begin (){
-  // Continuously measure the resistance,
-  // storing the last N measurements in a circular buffer.
-  // Calculate the floating average of the last seconds.
-  // If the current measurement is close to the average stop.
 
-  // Seconds to keep stable for successful calibration
-  // (Keeps smaller than 64 to prevent overflows)
-  uint8_t seconds = 10;
-  // Allowed delta for the average from the current value
-  uint8_t delta = 2;
-  int count = 0;
-  // Circular buffer for the measurements
-  uint16_t bufferNH3[seconds];
-  uint16_t bufferRED[seconds];
-  uint16_t bufferOX[seconds];
-  // Pointers for the next element in the buffer
-  uint8_t pntrNH3 = 0;
-  uint8_t pntrRED = 0;
-  uint8_t pntrOX = 0;
-  // Current floating sum in the buffer
-  uint16_t fltSumNH3 = 0;
-  uint16_t fltSumRED = 0;
-  uint16_t fltSumOX = 0;
-
-  // Current measurements;
-  uint16_t curNH3;
-  uint16_t curRED;
-  uint16_t curOX;
-
-  // Flag to see if the channels are stable
-  bool NH3stable = false;
-  bool REDstable = false;
-  bool OXstable = false;
-
-  // Initialize buffer
-  for (int i = 0; i < seconds; ++i) {
-    bufferNH3[i] = 0;
-    bufferRED[i] = 0;
-    bufferOX[i] = 0;
+void MICS6814 :: begin(bool EnableCalibrationProcedure) {
+  adc1_config_width(ADC_WIDTH_BIT_12);
+  adc1_config_channel_atten(_pinCO, ADC_ATTEN_DB_12); 
+  adc1_config_channel_atten(_pinNO2, ADC_ATTEN_DB_12); 
+  adc1_config_channel_atten(_pinNH3, ADC_ATTEN_DB_12); 
+  if (EnableCalibrationProcedure) {
+    Serial.println("calibration");
+    calibrate();
   }
+  else{
+    Serial.println("Load Parameters");
+    loadCalibrationData(923, 4095, 3262);
+  }
+}
+/**
+ * Calibrates MICS-6814 before use
+ *
+ * Work algorithm:
+ *
+ * Continuously measures resistance,
+ * with saving the last N measurements in the buffer.
+ * Calculates the floating average of the last seconds.
+ * If the current measurement is close to average,
+ * we believe that the calibration was successful.
+ */
+int MICS6814 :: calibrate ()
+{
+	// The number of seconds that must pass before
+	// than we will assume that the calibration is complete
+	// (Less than 64 seconds to avoid overflow)
+	uint8_t seconds = 10;
+  int maxIterCalib = 500;
+	// Tolerance for the average of the current value
+	uint8_t delta = 2;
+  int count = 0;
 
-  do {
-    // Wait a second
-    delay(100);
+	// Measurement buffers
+	uint16_t bufferNH3[seconds];
+	uint16_t bufferCO[seconds];
+	uint16_t bufferNO2[seconds];
+
+	// Pointers for the next item in the buffer
+	uint8_t pntrNH3 = 0;
+	uint8_t pntrCO = 0;
+	uint8_t pntrNO2 = 0;
+
+	// The current floating amount in the buffer
+	uint16_t fltSumNH3 = 0;
+	uint16_t fltSumCO = 0;
+	uint16_t fltSumNO2 = 0;
+
+	// Current measurement
+	uint16_t curNH3;
+	uint16_t curCO;
+	uint16_t curNO2;
+
+	// Flag of stability of indications
+	bool isStableNH3 = false;
+	bool isStableCO = false;
+	bool isStableNO2 = false;
+
+	// We kill the buffer with zeros
+	for (int i = 0; i <seconds; ++ i)
+	{
+		bufferNH3[i] = 0;
+		bufferCO[i] = 0;
+		bufferNO2[i] = 0;
+	}
+
+	// Calibrate
+	do
+	{
+		delay (100);
     Serial.print(".");
-    // Read new resistances
-    unsigned long rs = 0;
-    for (int i = 0; i < 3; i++) {
-    delay(2);
-    rs += (adc1_get_raw(ADC1_CHANNEL_3)+1)/4-1;
-    }
-    curNH3 = rs/3;
+
+		unsigned long rs = 0;
+		for (int i = 0; i <3; i ++)	{
+			delay (2);
+			rs += adc1_get_raw(_pinNH3);
+		}
+		curNH3 = rs / 3;
+		
     rs = 0;
-    for (int i = 0; i < 3; i++) {
-    delay(2);
-    rs += (adc1_get_raw(ADC1_CHANNEL_4)+1)/4-1;
-    }
-    curRED = rs/3;
+		for (int i = 0; i <3; i ++){
+			delay (1);
+			rs += adc1_get_raw (_pinCO);
+		}
+		curCO = rs / 3;
+		
     rs = 0;
-    for (int i = 0; i < 3; i++) {
-    delay(2);
-    rs += (adc1_get_raw(ADC1_CHANNEL_5)+1)/4-1;
-    }
-    curOX = rs/3;
+		for (int i = 0; i <3; i ++){
+			delay (1);
+			rs += adc1_get_raw (_pinNO2);
+		}
+		curNO2 = rs / 3;
 
-    // Update floating sum by subtracting value
-    // about to be overwritten and adding the new value.
-    fltSumNH3 = fltSumNH3 + curNH3 - bufferNH3[pntrNH3];
-    fltSumRED = fltSumRED + curRED - bufferRED[pntrRED];
-    fltSumOX = fltSumOX + curOX - bufferOX[pntrOX];
+		// Update the floating amount by subtracting the value, 
+		// to be overwritten, and adding a new value.
+		fltSumNH3 = fltSumNH3 + curNH3 - bufferNH3[pntrNH3];
+		fltSumCO = fltSumCO + curCO - bufferCO[pntrCO];
+		fltSumNO2 = fltSumNO2 + curNO2 - bufferNO2[pntrNO2];
 
-    // Store new measurement in buffer
-    bufferNH3[pntrNH3] = curNH3;
-    bufferRED[pntrRED] = curRED;
-    bufferOX[pntrOX] = curOX;
+		// Store d buffer new values
+		bufferNH3[pntrNH3] = curNH3;
+		bufferCO[pntrCO] = curCO;
+		bufferNO2[pntrNO2] = curNO2; 
 
-    // Determine new state of flags
-    NH3stable = abs(fltSumNH3 / seconds - curNH3) < delta;
-    REDstable = abs(fltSumRED / seconds - curRED) < delta;
-    OXstable = abs(fltSumOX / seconds - curOX) < delta;
+		// Define flag states
+		isStableNH3 = abs (fltSumNH3 / seconds - curNH3) <delta;
+		isStableCO = abs (fltSumCO / seconds - curCO) <delta;
+		isStableNO2 = abs (fltSumNO2 / seconds - curNO2) <delta;
 
-    // Advance buffer pointer
-    pntrNH3 = (pntrNH3 + 1) % seconds ;
-    pntrRED = (pntrRED + 1) % seconds;
-    pntrOX = (pntrOX + 1) % seconds;
-
-    /*
-    if(!NH3stable) {
-      Serial.print("(NH3:");
-      Serial.print(abs(fltSumNH3 / seconds - curNH3));
-      Serial.print(")");
-    }
-    if(!REDstable) {
-      Serial.print("(RED:");
-      Serial.print(abs(fltSumNH3 / seconds - curRED));
-      Serial.print(")");
-    }
-    if(!OXstable) {
-      Serial.print("(OX:");
-      Serial.print(abs(fltSumNH3 / seconds - curOX));
-      Serial.print(")");
-    }
-    */
+		// Pointer to a buffer
+		pntrNH3 = (pntrNH3 + 1)% seconds;
+		pntrCO = (pntrCO + 1)% seconds;
+		pntrNO2 = (pntrNO2 + 1)% seconds;
   count += 1;
-  } while (( !NH3stable || !REDstable || !OXstable ) && count < maxIterCalib);
+	} while ((!isStableNH3 ||!isStableCO ||!isStableNO2) && count < maxIterCalib);
 
-  NH3baseR = fltSumNH3 / seconds;
-  REDbaseR = fltSumRED / seconds;
-  OXbaseR = fltSumOX / seconds;
+	_baseNH3 = fltSumNH3 / seconds;
+	_baseCO = fltSumCO / seconds;
+	_baseNO2 = fltSumNO2 / seconds;
+
+  Serial.println("");
+  Serial.print("Calibration DONE");
+  Serial.print("NH3:");
+  Serial.print(_baseNH3);
+  Serial.print(", ");
+  Serial.print("NO2:");
+  Serial.print(_baseNO2);
+  Serial.print(", ");
+  Serial.print("CO:");
+  Serial.println(_baseCO);
 
   if (count > maxIterCalib-1){
+    Serial.print("Calibration Fail");
     return 0;
   }else{
     return 1;
   }
+
+
 }
 
-float MICS6814 :: measureMICS (gas_t gas){
+void MICS6814 :: loadCalibrationData (
+	uint16_t baseNH3,
+	uint16_t baseCO,
+	uint16_t baseNO2)
+{
+	_baseNH3 = baseNH3;
+	_baseCO = baseCO;
+	_baseNO2 = baseNO2;
+}
+
+/**
+ * Measures the gas concentration in ppm for the specified gas.
+ *
+ * @param gas
+ * Gas ​​for concentration calculation.
+ *
+ * @return
+ * Current gas concentration in parts per million (ppm).
+ */
+float MICS6814 :: measure (gas_t gas)
+{
 	float ratio;
 	float c = 0;
 	switch (gas){
@@ -174,71 +214,79 @@ float MICS6814 :: measureMICS (gas_t gas){
 	return isnan (c)? -1: c;
 }
 
-uint16_t MICS6814 :: getResistance (channel_t channel) const{
+/**
+ * Requests the current resistance for this channel from the sensor. 
+ * Value is the value of the ADC in the range from 0 to 1024.
+ * 
+ * @param channel
+ * Channel for reading base resistance.
+ *
+ * @return
+ * Unsigned 16-bit base resistance of the selected channel.
+ */
+uint16_t MICS6814 :: getResistance (channel_t channel) const
+{
 	unsigned long rs = 0;
 	int counter = 0;
 
 	switch (channel)
 	{
 	case CH_RED:
-		for (int i = 0; i <maxIter; i ++)
+		for (int i = 0; i <100; i ++)
 		{
-			rs += (adc1_get_raw(ADC1_CHANNEL_4)+1)/4-1;
+			rs += adc1_get_raw (_pinCO);
 			counter ++;
 			delay (2);
 		}
 	case CH_OX:
-		for (int i = 0; i <maxIter; i ++)
+		for (int i = 0; i <100; i ++)
 		{
-			rs += (adc1_get_raw(ADC1_CHANNEL_5)+1)/4-1;
+			rs += adc1_get_raw (_pinNO2);
 			counter ++;
 			delay (2);
 		}
 	case CH_NH3:
-		for (int i = 0; i <maxIter; i ++)
+		for (int i = 0; i <100; i ++)
 		{
-			rs += (adc1_get_raw(ADC1_CHANNEL_3)+1)/4-1;
+			rs += adc1_get_raw (_pinNH3);
 			counter ++;
 			delay (2);
 		}
 	}
 
-	return counter != 0 ? rs / counter: 0;
+	return counter != 0? rs / counter: 0;
 }
 
-uint16_t MICS6814 :: getBaseResistance (channel_t channel) const{
+uint16_t MICS6814 :: getBaseResistance (channel_t channel) const
+{
+	switch (channel)
+	{
+	case CH_NH3:
+		return _baseNH3;
+	case CH_RED:
+		return _baseCO;
+	case CH_OX:
+		return _baseNO2;
+	}
 
-  switch (channel) {
-    case CH_NH3:
-      return NH3baseR;
-    case CH_RED:
-      return REDbaseR;
-    case CH_OX:
-      return OXbaseR;
-  }
-  //  }
-  
-  return 0;
+	return 0;
 }
 
-float MICS6814 :: getCurrentRatio (channel_t channel) const{
+/**
+ * Calculates the current resistance coefficient for a given channel.
+ * 
+ * @param channel
+ * Channel for requesting resistance values.
+ *
+ * @return
+ * Floating point resistance coefficient for this sensor.
+ */
+float MICS6814 :: getCurrentRatio (channel_t channel) const
+{
 	float baseResistance = (float) getBaseResistance (channel);
 	float resistance = (float) getResistance (channel);
 
-	return resistance / baseResistance * (4095.0 - baseResistance) / (4095.0 - resistance);
+	return resistance / baseResistance * (1023.0 - baseResistance) / (1023.0 - resistance);
 
 	return -1.0;
-}
-
-float MICS6814::getCO(){
-  return measureMICS(CO);
-}
-
-float MICS6814::getNO2(){
-  return measureMICS(NO2);
-}
-
-float MICS6814::getNH3(){    
-  return measureMICS(NH3);
-  
 }
